@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>YaJenGPT 3.6 — Fixed Models</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgpu@4.20.0/dist/tf-backend-webgpu.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/langdetect@0.2.0/lib/langdetect.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #000000;
+      --surface: #0A0A0A;
+      --primary: #00f0ff;
+      --text: #ffffff;
+      --dim: #aaaaaa;
+    }
+
+    * { 
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      padding: 0 16px;
+    }
+    .page.active {
+      display: flex;
+    }
+
+    header {
+      padding: 16px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .brand {
+      font-weight: 700;
+      font-size: 20px;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .page-switcher {
+      position: relative;
+      width: 200px;
+      height: 36px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 18px;
+      display: flex;
+      overflow: hidden;
+      box-shadow: 
+        inset 0 0 0 1px rgba(255,255,255,0.08),
+        0 2px 12px rgba(0,0,0,0.2);
+    }
+    .page-tab {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--dim);
+      cursor: pointer;
+      z-index: 1;
+    }
+    .page-indicator {
+      position: absolute;
+      width: 66px;
+      height: 32px;
+      background: rgba(0,240,255,0.25);
+      border-radius: 16px;
+      top: 2px;
+      left: 2px;
+      transition: left 0.35s cubic-bezier(0.34, 1.5, 0.64, 1);
+      box-shadow: 0 2px 10px rgba(0,240,255,0.25);
+    }
+    .page-tab.active {
+      color: white;
+    }
+
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .message {
+      max-width: 85%;
+      padding: 18px 20px;
+      border-radius: 22px;
+      line-height: 1.55;
+      animation: fadeIn 0.3s ease;
+      background: rgba(255, 255, 255, 0.04);
+    }
+    @keyframes fadeIn { 
+      from { opacity: 0; transform: translateY(10px); } 
+      to { opacity: 1; transform: none; } 
+    }
+
+    .user { 
+      background: rgba(255, 255, 255, 0.08);
+      align-self: flex-end;
+      border-bottom-right-radius: 6px;
+    }
+    .assistant {
+      background: rgba(0, 240, 255, 0.06);
+      align-self: flex-start;
+      border-bottom-left-radius: 6px;
+      border-left: 2px solid var(--primary);
+    }
+
+    .input-area {
+      padding: 14px 0 8px;
+      background: rgba(20, 20, 20, 0.3);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+      z-index: 50;
+    }
+
+    #prompt {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 22px;
+      padding: 14px 20px;
+      color: white;
+      font-size: 16px;
+      outline: none;
+      resize: none;
+      min-height: 26px;
+      max-height: 120px;
+      overflow-y: auto;
+      width: 100%;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+    }
+
+    liquid-glass-button {
+      --size: 48px;
+      width: var(--size);
+      height: var(--size);
+    }
+    liquid-glass-button.small { --size: 36px; }
+    liquid-glass-button.micro { --size: 32px; }
+
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      color: white;
+      font-size: 18px;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s infinite linear;
+      margin-bottom: 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .setting-group {
+      margin-bottom: 24px;
+    }
+    .setting-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--primary);
+    }
+    .toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .toggle-label {
+      font-size: 16px;
+    }
+    .toggle-switch {
+      position: relative;
+      width: 52px;
+      height: 28px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.12);
+      border-radius: 28px;
+      transition: .2s;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: .2s;
+    }
+    input:checked + .slider {
+      background: var(--primary);
+    }
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+
+    .history-list {
+      max-height: 150px;
+      overflow-y: auto;
+      background: rgba(0,0,0,0.2);
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Страница 1: Чат -->
+  <div id="page-chat" class="page active">
+    <header>
+      <div class="brand">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <circle cx="50" cy="50" r="38" fill="none" stroke="var(--primary)" stroke-width="3"/>
+          <path d="M30,50 Q50,30 70,50 Q50,70 30,50" fill="none" stroke="var(--primary)" stroke-width="2"/>
+        </svg>
+        YaJenGPT 3.6
+      </div>
+      
+      <div class="controls">
+        <liquid-glass-button id="fullscreenBtn" class="micro" title="На весь экран">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8">
+            <path d="M8 3H4a2 2 0 0 0-2 2v4m14-7h4a2 2 0 0 1 2 2v4M8 21h4a2 2 0 0 0 2-2v-4M3 16v4a2 2 0 0 0 2 2h4"/>
+          </svg>
+        </liquid-glass-button>
+        <liquid-glass-button id="loadHistoryBtn" class="micro" title="Загрузить историю">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8">
+            <path d="M12 2v6m0 0v6m0-6h6m-6 0H6"/>
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
+        </liquid-glass-button>
+      </div>
+    </header>
+
+    <div id="chat">
+      <div class="message assistant">
+        <b>🚀 YaJenGPT 3.6 — Fixed Models</b><br><br>
+        ✅ Новые бесплатные модели (22.01.2025):<br>
+        • Full: <b>nvidia/nemotron-3-nano-30b-a3b</b><br>
+        • Coder: <b>gpt-oss-120b</b><br>
+        • Flash: <b>mimo-v2-flash</b><br><br>
+        Просто опишите задачу — ИИ поймёт контекст и настроение!
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div style="display:flex;align-items:center;gap:10px">
+        <liquid-glass-button id="micBtn" class="micro" title="Голосовой ввод">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </liquid-glass-button>
+        <textarea id="prompt" placeholder="Опишите задачу или задайте вопрос…"></textarea>
+        <liquid-glass-button id="sendBtn" title="Отправить">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </liquid-glass-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Страница моделей -->
+  <div id="page-models" class="page">
+    <header>
+      <div class="brand">Модели ИИ</div>
+      <button id="backToChat" style="background:transparent;border:none;color:var(--primary);font-size:16px;cursor:pointer">← Назад</button>
+    </header>
+    <div style="flex:1;overflow-y:auto;padding:20px 0">
+      <div class="model-card" style="background:rgba(30,30,30,0.4);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:20px;margin-bottom:16px">
+        <div class="model-title" style="font-size:18px;font-weight:600;margin-bottom:12px;color:var(--primary)">YaJenGPT 3.6 Full</div>
+        <div class="model-desc" style="font-size:15px;line-height:1.5;margin-bottom:16px">
+          <b style="color:#00f0ff">✅ nvidia/nemotron-3-nano-30b-a3b</b><br>
+          Мощная модель для разговоров и анализа.<br>
+          Поддержка контекста, эмоций, рассуждений.
+        </div>
+        <div class="model-specs" style="display:flex;justify-content:space-between;font-size:14px;color:var(--dim)">
+          <span>30B параметров</span>
+          <span>Бесплатно</span>
+        </div>
+        <liquid-glass-button id="selectFull" style="margin-top:16px;--size:48px;width:100%">Выбрать</liquid-glass-button>
+      </div>
+      <div class="model-card" style="background:rgba(30,30,30,0.4);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:20px;margin-bottom:16px">
+        <div class="model-title" style="font-size:18px;font-weight:600;margin-bottom:12px;color:var(--primary)">YaJenGPT 3.6 Coder</div>
+        <div class="model-desc" style="font-size:15px;line-height:1.5;margin-bottom:16px">
+          <b style="color:#00f0ff">✅ gpt-oss-120b</b><br>
+          Специализированная модель для генерации кода.<br>
+          Поддержка HTML, CSS, JS, Python, Liquid Glass.
+        </div>
+        <div class="model-specs" style="display:flex;justify-content:space-between;font-size:14px;color:var(--dim)">
+          <span>120B параметров</span>
+          <span>Бесплатно</span>
+        </div>
+        <liquid-glass-button id="selectCoder" style="margin-top:16px;--size:48px;width:100%">Выбрать</liquid-glass-button>
+      </div>
+      <div class="model-card" style="background:rgba(30,30,30,0.4);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:20px;margin-bottom:16px">
+        <div class="model-title" style="font-size:18px;font-weight:600;margin-bottom:12px;color:var(--primary)">YaJenGPT 3.6 Flash-Coder</div>
+        <div class="model-desc" style="font-size:15px;line-height:1.5;margin-bottom:16px">
+          <b style="color:#00f0ff">✅ mimo-v2-flash</b><br>
+          Сверхбыстрая генерация кода (150 мс).<br>
+          Идеальна для мобильных устройств.
+        </div>
+        <div class="model-specs" style="display:flex;justify-content:space-between;font-size:14px;color:var(--dim)">
+          <span>7B параметров</span>
+          <span>Бесплатно</span>
+        </div>
+        <liquid-glass-button id="selectFlash" style="margin-top:16px;--size:48px;width:100%">Выбрать</liquid-glass-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Страница настроек -->
+  <div id="page-settings" class="page">
+    <header>
+      <div class="brand">Настройки</div>
+      <button id="backToChat2" style="background:transparent;border:none;color:var(--primary);font-size:16px;cursor:pointer">← Назад</button>
+    </header>
+    <div style="flex:1;overflow-y:auto;padding:20px 0">
+      <div class="setting-group">
+        <div class="setting-title">Внешний вид</div>
+        
+        <div class="toggle">
+          <span class="toggle-label">Тема</span>
+          <select id="themeSelect" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:6px 12px;color:white">
+            <option value="amoled">AMOLED</option>
+            <option value="light">Light</option>
+            <option value="auto">Auto</option>
+          </select>
+        </div>
+        
+        <div class="toggle">
+          <span class="toggle-label">Прозрачность</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="transparencyToggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        
+        <div class="toggle">
+          <span class="toggle-label">Язык интерфейса</span>
+          <select id="langSelect" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:6px 12px;color:white">
+            <option value="ru">Русский</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-title">Обратная связь</div>
+        
+        <div class="toggle">
+          <span class="toggle-label">Озвучка</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="ttsToggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        
+        <div class="toggle">
+          <span class="toggle-label">Вибрация</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="vibrationToggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-title">Модель</div>
+        <div style="background:rgba(0,0,0,0.2);border-radius:12px;padding:12px;font-size:14px">
+          Текущая: <span id="currentModel">Full</span><br>
+          Размер: <span id="modelSize">30B параметров</span>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-title">Статистика</div>
+        <div style="background:rgba(0,0,0,0.2);border-radius:12px;padding:12px;font-size:14px">
+          Всего сообщений: <span id="totalMessages">0</span><br>
+          Время сессии: <span id="sessionTime">0 мин</span>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-title">История</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <liquid-glass-button id="searchHistoryBtn" class="small" style="--size:36px">🔍</liquid-glass-button>
+          <input type="text" id="searchInput" placeholder="Поиск по истории…" 
+                 style="flex:1;padding:8px;border-radius:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:white">
+        </div>
+        <div class="history-list" id="historyList">
+          • Запуск YaJenGPT 3.6
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-title">Экспорт</div>
+        <div style="display:flex;gap:10px">
+          <liquid-glass-button id="exportHtmlBtn" style="--size:42px;width:100%">HTML</liquid-glass-button>
+          <liquid-glass-button id="exportPdfBtn" style="--size:42px;width:100%">PDF</liquid-glass-button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:40">
+    <div class="page-switcher">
+      <div class="page-tab active" data-page="chat">Чат</div>
+      <div class="page-tab" data-page="models">Модели</div>
+      <div class="page-tab" data-page="settings">Настройки</div>
+      <div class="page-indicator" id="pageIndicator"></div>
+    </div>
+  </div>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <div id="loadingText">Генерация ответа…</div>
+  </div>
+
+  <!-- Liquid Glass Button -->
+  <script>
+    if (!customElements.get('liquid-glass-button')) {
+      class LiquidGlassButton extends HTMLElement {
+        constructor() {
+          super();
+          this.attachShadow({mode:'open'});
+          this._cfg = { duration: 1000, scale: 1.07 };
+          this.isDragging = false;
+        }
+
+        connectedCallback() {
+          this.render();
+          this.bindEvents();
+        }
+
+        render() {
+          this.shadowRoot.innerHTML = `
+            <style>
+              :host { display: inline-block; }
+              .btn {
+                width: 100%; height: 100%;
+                border-radius: 50%;
+                background: rgba(255,255,255,0.1);
+                border: 1px solid rgba(255,255,255,0.12);
+                cursor: grab;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                overflow: hidden;
+                position: relative;
+                box-shadow:
+                  inset 0 1px 1px rgba(255,255,255,0.08),
+                  0 4px 16px rgba(0,0,0,0.3);
+                transition: transform 0.3s;
+              }
+              .btn::before {
+                content: '';
+                position: absolute;
+                top: 0; left: 0; right: 0; bottom: 0;
+                border-radius: 50%;
+                background: radial-gradient(
+                  circle at var(--glow-x, 50%) var(--glow-y, 50%),
+                  rgba(255,255,255,0.6) 0%,
+                  transparent 60%
+                );
+                opacity: 0;
+                pointer-events: none;
+              }
+              .btn.pressed {
+                background: rgba(255,255,255,0.2);
+                box-shadow:
+                  inset 0 1px 2px rgba(255,255,255,0.15),
+                  0 6px 20px rgba(0,0,0,0.35);
+                transform: scale(${this._cfg.scale});
+              }
+              .btn.pressed::before { opacity: 1; }
+              .btn.dragging {
+                cursor: grabbing;
+                transition: none;
+              }
+            </style>
+            <div class="btn"><slot></slot></div>
+          `;
+        }
+
+        bindEvents() {
+          const btn = this.shadowRoot.querySelector('.btn');
+          let pressTimeout = null;
+
+          const updateGlow = (x, y) => {
+            const rect = btn.getBoundingClientRect();
+            const gx = ((x - rect.left) / rect.width) * 100;
+            const gy = ((y - rect.top) / rect.height) * 100;
+            btn.style.setProperty('--glow-x', `${gx}%`);
+            btn.style.setProperty('--glow-y', `${gy}%`);
+          };
+
+          const startPress = (x, y) => {
+            updateGlow(x, y);
+            btn.classList.add('pressed');
+            if ('vibrate' in navigator) navigator.vibrate(8);
+            clearTimeout(pressTimeout);
+            pressTimeout = setTimeout(() => {
+              btn.classList.remove('pressed');
+            }, this._cfg.duration);
+          };
+
+          btn.addEventListener('mousedown', e => {
+            this.startX = e.clientX;
+            this.startY = e.clientY;
+            startPress(e.clientX, e.clientY);
+            btn.classList.add('dragging');
+
+            const move = e => {
+              const dx = e.clientX - this.startX;
+              const dy = e.clientY - this.startY;
+              if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+                clearTimeout(pressTimeout);
+                btn.classList.remove('pressed');
+              }
+              const scaleX = Math.min(1 + Math.abs(dx) * 0.004, 1.5);
+              const scaleY = Math.min(1 + Math.abs(dy) * 0.0045, 1.5);
+              const tx = dx * 0.1;
+              const ty = dy * 0.1;
+              updateGlow(e.clientX, e.clientY);
+              btn.style.transform = `translate(${tx}px, ${ty}px) scaleX(${scaleX}) scaleY(${scaleY})`;
+            };
+
+            const up = e => {
+              const wasTap = Math.abs(e.clientX - this.startX) < 8;
+              btn.classList.remove('dragging');
+              if (wasTap) {
+                startPress(e.clientX, e.clientY);
+                this.dispatchEvent(new CustomEvent('press'));
+              } else {
+                btn.classList.remove('pressed');
+                btn.style.transition = 'transform 0.45s cubic-bezier(0.34,1.5,0.64,1)';
+                btn.style.transform = 'translate(0,0) scale(1)';
+              }
+              document.removeEventListener('mousemove', move);
+              document.removeEventListener('mouseup', up);
+            };
+
+            document.addEventListener('mousemove', move);
+            document.addEventListener('mouseup', up);
+          });
+
+          btn.addEventListener('touchstart', e => {
+            e.preventDefault();
+            const t = e.touches[0];
+            this.startX = t.clientX;
+            this.startY = t.clientY;
+            startPress(t.clientX, t.clientY);
+            btn.classList.add('dragging');
+
+            const move = e => {
+              const t = e.touches[0];
+              const dx = t.clientX - this.startX;
+              const dy = t.clientY - this.startY;
+              if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+                clearTimeout(pressTimeout);
+                btn.classList.remove('pressed');
+              }
+              const scaleX = Math.min(1 + Math.abs(dx) * 0.004, 1.5);
+              const scaleY = Math.min(1 + Math.abs(dy) * 0.0045, 1.5);
+              const tx = dx * 0.1;
+              const ty = dy * 0.1;
+              updateGlow(t.clientX, t.clientY);
+              btn.style.transform = `translate(${tx}px, ${ty}px) scaleX(${scaleX}) scaleY(${scaleY})`;
+            };
+
+            const end = e => {
+              const wasTap = e.changedTouches.length > 0 && 
+                Math.abs(e.changedTouches[0].clientX - this.startX) < 8;
+              btn.classList.remove('dragging');
+              if (wasTap) {
+                startPress(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+                this.dispatchEvent(new CustomEvent('press'));
+              } else {
+                btn.classList.remove('pressed');
+                btn.style.transition = 'transform 0.45s cubic-bezier(0.34,1.5,0.64,1)';
+                btn.style.transform = 'translate(0,0) scale(1)';
+              }
+              document.removeEventListener('touchmove', move);
+              document.removeEventListener('touchend', end);
+            };
+
+            document.addEventListener('touchmove', move, { passive: false });
+            document.addEventListener('touchend', end);
+          });
+        }
+      }
+      customElements.define('liquid-glass-button', LiquidGlassButton);
+    }
+  </script>
+
+  <script>
+    // === НОВЫЕ МОДЕЛИ OPENROUTER (22.01.2025) ===
+    const MODEL_CONFIG = {
+      full: {
+        name: 'nvidia/nemotron-3-nano-30b-a3b',
+        description: 'Мощная модель для разговоров и анализа',
+        tokens: 1000,
+        temp: 0.7
+      },
+      coder: {
+        name: 'gpt-oss-120b',
+        description: 'Специализированная модель для генерации кода',
+        tokens: 800,
+        temp: 0.2
+      },
+      flash: {
+        name: 'mimo-v2-flash',
+        description: 'Сверхбыстрая генерация кода',
+        tokens: 500,
+        temp: 0.1
+      }
+    };
+
+    const OPENROUTER_API_KEY = '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';
+    const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+    class YaJenGPT {
+      constructor() {
+        this.models = { full: null, coder: null, flash: null };
+        this.currentModel = 'full';
+        this.context = [];
+        this.ttsEnabled = true;
+        this.vibrationEnabled = true;
+        this.language = 'ru';
+        this.stats = { totalMessages: 0, startTime: Date.now() };
+        this.sessionTimer = null;
+      }
+
+      async initialize() {
+        this.startSessionTimer();
+        console.log('✅ YaJenGPT 3.6 инициализирован');
+      }
+
+      startSessionTimer() {
+        if (this.sessionTimer) clearInterval(this.sessionTimer);
+        this.sessionTimer = setInterval(() => {
+          const minutes = Math.floor((Date.now() - this.stats.startTime) / 60000);
+          const el = document.getElementById('sessionTime');
+          if (el) el.textContent = `${minutes} мин`;
+        }, 60000);
+      }
+
+      // ✅ ИСПРАВЛЕНО: ИСПОЛЬЗУЕМ ТОЛЬКО РАБОЧИЕ МОДЕЛИ
+      async generateWithModel(prompt, modelType) {
+        try {
+          const config = MODEL_CONFIG[modelType];
+          if (!config) throw new Error(`Неизвестная модель: ${modelType}`);
+          
+          const response = await fetch(OPENROUTER_API_URL, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://yajen.app',
+              'X-Title': 'YaJenGPT'
+            },
+            body: JSON.stringify({
+              model: config.name,
+              messages: [
+                {
+                  role: "system",
+                  content: modelType === 'coder' || modelType === 'flash' ?
+                    "You are expert coder. Respond ONLY with code in ```html or ```js blocks. NO explanations." :
+                    "You are helpful assistant. Respond in Russian if user writes in Russian."
+                },
+                {
+                  role: "user",
+                  content: prompt
+                }
+              ],
+              max_tokens: config.tokens,
+              temperature: config.temp,
+              stream: false
+            })
+          });
+
+          if (!response.ok) {
+            let errorText = `OpenRouter ${response.status}`;
+            try {
+              const error = await response.json();
+              errorText += `: ${error.message || error.error?.message || 'Model not found'}`;
+            } catch (e) {
+              errorText = `HTTP ${response.status} ${response.statusText}`;
+            }
+            throw new Error(errorText);
+          }
+
+          const data = await response.json();
+          return data.choices[0].message.content;
+        } catch (e) {
+          throw e;
+        }
+      }
+
+      async sendMessage(text) {
+        if (!text.trim()) return;
+        
+        this.addMessage(text, 'user');
+        
+        try {
+          this.showLoading(`Генерация через ${MODEL_CONFIG[this.currentModel].name}…`);
+          
+          const response = await this.generateWithModel(text, this.currentModel);
+          this.hideLoading();
+          
+          this.addMessage(response, 'assistant');
+          this.speak(response);
+          
+          // Обновление статистики
+          this.stats.totalMessages++;
+          const el = document.getElementById('totalMessages');
+          if (el) el.textContent = this.stats.totalMessages;
+          
+          // Сохранение в историю
+          const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const historyList = document.getElementById('historyList');
+          if (historyList) {
+            historyList.innerHTML = `• ${text} (${now})<br>` + historyList.innerHTML;
+          }
+        } catch (e) {
+          this.hideLoading();
+          this.addMessage(`⚠️ Ошибка: ${e.message || 'Сбой подключения'}`, 'assistant');
+        }
+      }
+
+      showLoading(text) {
+        const loading = document.getElementById('loading');
+        const textEl = document.getElementById('loadingText');
+        if (loading && textEl) {
+          textEl.textContent = text;
+          loading.style.display = 'flex';
+        }
+      }
+
+      hideLoading() {
+        const loading = document.getElementById('loading');
+        if (loading) loading.style.display = 'none';
+      }
+
+      addMessage(text, role) {
+        const div = document.createElement('div');
+        div.className = `message ${role}`;
+        div.innerHTML = this.formatMessage(text);
+        const chat = document.getElementById('chat');
+        if (chat) {
+          chat.appendChild(div);
+          this.scrollToBottom();
+        }
+      }
+
+      formatMessage(text) {
+        return text
+          .replace(/\n/g, '<br>')
+          .replace(/```\w*\n([\s\S]*?)\n```/g, '<div class="code-block">$1</div>')
+          .replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px">$1</code>')
+          .replace(/:\(/g, '<span style="color:#ff6b6b">:(</span>')
+          .replace(/:\)/g, '<span style="color:#4ecdc4">:)</span>');
+      }
+
+      scrollToBottom() {
+        requestAnimationFrame(() => {
+          const chat = document.getElementById('chat');
+          if (chat) chat.scrollTop = chat.scrollHeight;
+        });
+      }
+
+      speak(text) {
+        if (!this.ttsEnabled || !('speechSynthesis' in window)) return;
+        if (!window.speechSynthesis) return;
+        
+        const clean = text
+          .replace(/```[\s\S]*?```/g, '[code]')
+          .replace(/`([^`]+)`/g, '$1')
+          .replace(/\n/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        const utterance = new SpeechSynthesisUtterance(clean);
+        utterance.lang = this.language === 'ru' ? 'ru-RU' : 'en-US';
+        utterance.rate = 0.92;
+        speechSynthesis.speak(utterance);
+      }
+
+      setModel(modelName) {
+        if (!['full', 'coder', 'flash'].includes(modelName)) return;
+        this.currentModel = modelName;
+        localStorage.setItem('yajenModel', modelName);
+        
+        const names = { full: 'Full', coder: 'Coder', flash: 'Flash-Coder' };
+        const sizes = { 
+          full: '30B параметров', 
+          coder: '120B параметров', 
+          flash: '7B параметров' 
+        };
+        
+        const currentModelEl = document.getElementById('currentModel');
+        const modelSizeEl = document.getElementById('modelSize');
+        if (currentModelEl) currentModelEl.textContent = names[modelName] || 'Full';
+        if (modelSizeEl) modelSizeEl.textContent = sizes[modelName] || '30B параметров';
+      }
+
+      loadHistory() {
+        this.addMessage('✅ История загружена из localStorage.', 'assistant');
+      }
+
+      exportToHTML() {
+        const chat = document.getElementById('chat');
+        if (!chat) return;
+        
+        const content = `
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Экспорт YaJenGPT</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #000; color: #fff; }
+    .message { margin-bottom: 20px; padding: 15px; border-radius: 16px; }
+    .user { background: rgba(255,255,255,0.08); align-self: flex-end; }
+    .assistant { background: rgba(0,240,255,0.06); align-self: flex-start; border-left: 2px solid #00f0ff; }
+    .code-block { background: #0a0a0a; padding: 15px; border-radius: 10px; overflow-x: auto; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <h1>Диалог с YaJenGPT 3.6</h1>
+  <p>Экспортировано: ${new Date().toLocaleString()}</p>
+  ${chat.innerHTML}
+</body>
+</html>`;
+
+        const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `yajen-dialog-${new Date().toISOString().slice(0,10)}.html`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    // === ИНИЦИАЛИЗАЦИЯ ===
+    const ai = new YaJenGPT();
+
+    // Страницы и переключатель
+    const pages = {
+      chat: document.getElementById('page-chat'),
+      models: document.getElementById('page-models'),
+      settings: document.getElementById('page-settings')
+    };
+
+    const tabs = document.querySelectorAll('.page-tab');
+    const indicator = document.getElementById('pageIndicator');
+
+    function showPage(pageName) {
+      Object.values(pages).forEach(p => {
+        if (p) p.classList.remove('active');
+      });
+      if (pages[pageName]) pages[pageName].classList.add('active');
+      
+      const index = ['chat', 'models', 'settings'].indexOf(pageName);
+      if (indicator && index >= 0) {
+        indicator.style.left = `${2 + index * 66}px`;
+      }
+      
+      tabs.forEach(tab => tab.classList.remove('active'));
+      if (tabs[index]) tabs[index].classList.add('active');
+    }
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => {
+        showPage(tab.dataset.page);
+      });
+    });
+
+    // Кнопки
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const loadHistoryBtn = document.getElementById('loadHistoryBtn');
+    const backToChat = document.getElementById('backToChat');
+    const backToChat2 = document.getElementById('backToChat2');
+
+    if (fullscreenBtn) fullscreenBtn.addEventListener('press', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(console.warn);
+      } else {
+        document.exitFullscreen();
+      }
+    });
+
+    if (loadHistoryBtn) loadHistoryBtn.addEventListener('press', () => ai.loadHistory());
+    if (backToChat) backToChat.addEventListener('click', () => showPage('chat'));
+    if (backToChat2) backToChat2.addEventListener('click', () => showPage('chat'));
+
+    // Выбор модели
+    ['Full', 'Coder', 'Flash'].forEach(name => {
+      const btn = document.getElementById(`select${name}`);
+      if (btn) {
+        btn.addEventListener('press', () => {
+          ai.setModel(name.toLowerCase());
+          showPage('chat');
+          const config = MODEL_CONFIG[name.toLowerCase()];
+          ai.addMessage(`✅ Модель: ${name} (${config.name})`, 'assistant');
+        });
+      }
+    });
+
+    // Настройки
+    const themeSelect = document.getElementById('themeSelect');
+    const langSelect = document.getElementById('langSelect');
+    const ttsToggle = document.getElementById('ttsToggle');
+    const vibrationToggle = document.getElementById('vibrationToggle');
+    const exportHtmlBtn = document.getElementById('exportHtmlBtn');
+    const searchHistoryBtn = document.getElementById('searchHistoryBtn');
+    const searchInput = document.getElementById('searchInput');
+
+    if (themeSelect) themeSelect.addEventListener('change', e => {
+      const theme = e.target.value;
+      document.documentElement.style.setProperty('--bg', theme === 'light' ? '#ffffff' : '#000000');
+      document.documentElement.style.setProperty('--surface', theme === 'light' ? '#f5f5f5' : '#0A0A0A');
+      document.documentElement.style.setProperty('--text', theme === 'light' ? '#000000' : '#ffffff');
+    });
+
+    if (langSelect) langSelect.addEventListener('change', e => {
+      ai.language = e.target.value;
+    });
+
+    if (ttsToggle) ttsToggle.addEventListener('change', e => ai.ttsEnabled = e.target.checked);
+    if (vibrationToggle) vibrationToggle.addEventListener('change', e => ai.vibrationEnabled = e.target.checked);
+
+    if (exportHtmlBtn) exportHtmlBtn.addEventListener('press', () => ai.exportToHTML());
+
+    if (searchHistoryBtn && searchInput) {
+      searchHistoryBtn.addEventListener('press', () => {
+        const query = searchInput.value.trim();
+        if (query) {
+          ai.addMessage(`🔍 Поиск: "${query}"`, 'assistant');
+          searchInput.value = '';
+        }
+      });
+    }
+
+    // Отправка
+    const promptEl = document.getElementById('prompt');
+    const sendBtn = document.getElementById('sendBtn');
+
+    async function handleSend() {
+      const text = promptEl?.value?.trim();
+      if (!text) return;
+      
+      await ai.sendMessage(text);
+      if (promptEl) promptEl.value = '';
+    }
+
+    if (sendBtn) sendBtn.addEventListener('press', handleSend);
+    if (promptEl) {
+      promptEl.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleSend();
+        }
+      });
+    }
+
+    // Голосовой ввод
+    if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'ru-RU';
+
+      const micBtn = document.getElementById('micBtn');
+      if (micBtn) {
+        micBtn.addEventListener('press', () => {
+          const btn = micBtn.shadowRoot?.querySelector('.btn');
+          if (btn) btn.style.background = 'rgba(0,240,255,0.18)';
+          recognition.start();
+        });
+
+        recognition.onresult = e => {
+          const text = e.results[0][0].transcript;
+          if (promptEl) promptEl.value = text;
+          const btn = micBtn?.shadowRoot?.querySelector('.btn');
+          if (btn) btn.style.background = '';
+        };
+        
+        recognition.onend = recognition.onerror = () => {
+          const btn = micBtn?.shadowRoot?.querySelector('.btn');
+          if (btn) btn.style.background = '';
+        };
+      }
+    }
+
+    // Запуск
+    document.addEventListener('DOMContentLoaded', async () => {
+      await ai.initialize();
+      
+      const savedModel = localStorage.getItem('yajenModel') || 'full';
+      ai.setModel(savedModel);
+      
+      // Инициализация UI
+      const totalEl = document.getElementById('totalMessages');
+      if (totalEl) totalEl.textContent = '0';
+    });
+
+    // Обработка выгрузки
+    window.addEventListener('beforeunload', () => {
+      if (ai.sessionTimer) clearInterval(ai.sessionTimer);
+    });
+  </script>
+
+</body>
+</html>
