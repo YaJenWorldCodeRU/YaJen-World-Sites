@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YaMax | Мод на макс</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #0088cc;
+            --secondary-color: #005f8f;
+            --accent-color: #00d4ff;
+            --dark-bg: #0f0f0f;
+            --card-bg: #1a1a2e;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            --gradient-3: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--dark-bg);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background: radial-gradient(circle, rgba(0, 136, 204, 0.1) 0%, transparent 70%);
+            animation: rotate 30s linear infinite;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .floating-particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 15s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.3;
+            }
+            90% {
+                opacity: 0.3;
+            }
+            100% {
+                transform: translateY(-100vh) scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* Header */
+        header {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .logo-container {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            font-size: 5rem;
+            font-weight: bold;
+            background: var(--gradient-2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                filter: drop-shadow(0 0 20px rgba(0, 198, 255, 0.5));
+            }
+            to {
+                filter: drop-shadow(0 0 40px rgba(0, 198, 255, 0.8));
+            }
+        }
+
+        .tagline {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            animation: fadeInUp 1s ease-out 0.5s both;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--accent-color);
+            margin-bottom: 3rem;
+            animation: fadeInUp 1s ease-out 0.8s both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            animation: fadeInUp 1s ease-out 1.1s both;
+        }
+
+        .btn {
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--gradient-2);
+            color: white;
+            box-shadow: 0 10px 30px rgba(0, 114, 255, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 114, 255, 0.6);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--accent-color);
+            border: 2px solid var(--accent-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--accent-color);
+            color: var(--dark-bg);
+            transform: translateY(-3px);
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 5rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            margin-bottom: 4rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 20px;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--gradient-2);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: -1;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(0, 136, 204, 0.3);
+        }
+
+        .feature-card:hover::before {
+            opacity: 0.1;
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            display: block;
+        }
+
+        .feature-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--accent-color);
+        }
+
+        .feature-description {
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        /* About Section */
+        .about {
+            padding: 5rem 2rem;
+            background: rgba(26, 26, 46, 0.5);
+        }
+
+        .about-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .about-text {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            line-height: 2;
+            margin-bottom: 3rem;
+        }
+
+        .highlight {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        /* Channels Section */
+        .channels {
+            padding: 5rem 2rem;
+            background: rgba(26, 26, 46, 0.5);
+        }
+
+        .channels-content {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .channel-links {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-top: 3rem;
+        }
+
+        .channel-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            padding: 1.5rem 2rem;
+            background: var(--card-bg);
+            border-radius: 15px;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 1.2rem;
+        }
+
+        .channel-link:hover {
+            background: var(--gradient-2);
+            transform: scale(1.02);
+            box-shadow: 0 10px 40px rgba(0, 136, 204, 0.4);
+        }
+
+        .channel-icon {
+            font-size: 2rem;
+        }
+
+        /* Footer */
+        footer {
+            padding: 3rem 2rem;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-text {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .social-link {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .social-link:hover {
+            background: var(--gradient-2);
+            transform: translateY(-5px);
+        }
+
+        /* Scroll Animation */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 3rem;
+            }
+
+            .tagline {
+                font-size: 1.2rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
+        }
+
+        /* Pulse Animation for Logo */
+        .pulse-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 3px solid var(--accent-color);
+            border-radius: 50%;
+            animation: pulse 2s ease-out infinite;
+            opacity: 0;
+        }
+
+        @keyframes pulse {
+            0% {
+                width: 150px;
+                height: 150px;
+                opacity: 0.8;
+            }
+            100% {
+                width: 400px;
+                height: 400px;
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation" id="bgAnimation"></div>
+
+    <!-- Header Section -->
+    <header>
+        <div class="logo-container">
+            <div class="pulse-ring"></div>
+            <h1 class="logo">YaMax</h1>
+        </div>
+        <p class="tagline">Мод на макс</p>
+        <p class="subtitle">Модифицированная версия мессенджера MAX с улучшениями безопасности</p>
+        
+        <div class="cta-buttons">
+            <a href="https://t.me/YaMax_Max_Mod" class="btn btn-primary" target="_blank">
+                <span>📱</span>
+                Русский канал
+            </a>
+            <a href="https://t.me/YaMax_Max_Mod_Eng" class="btn btn-secondary" target="_blank">
+                <span>🌍</span>
+                English Channel
+            </a>
+            <a href="https://ya.ru" class="btn btn-primary" target="_blank" style="background: var(--gradient-1);">
+                <span>🔍</span>
+                Перейти в Яндекс
+            </a>
+            <a href="https://help.max.ru/" class="btn btn-secondary" target="_blank" style="border-color: #f5576c; color: #f5576c;">
+                <span>❓</span>
+                Оригинал Max Help
+            </a>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section class="features">
+        <h2 class="section-title fade-in">Возможности</h2>
+        <p class="section-subtitle fade-in">Почему стоит выбрать YaMax?</p>
+        
+        <div class="features-grid">
+            <div class="feature-card fade-in">
+                <span class="feature-icon">🔒</span>
+                <h3 class="feature-title">Улучшенная безопасность</h3>
+                <p class="feature-description">
+                    Расширенные функции защиты конфиденциальности, улучшенное шифрование и дополнительные настройки безопасности для максимальной защиты ваших данных.
+                </p>
+            </div>
+
+            <div class="feature-card fade-in">
+                <span class="feature-icon">⚡</span>
+                <h3 class="feature-title">Высокая производительность</h3>
+                <p class="feature-description">
+                    Оптимизированный код и улучшенная скорость работы приложения. Быстрая загрузка сообщений, медиафайлов и плавная навигация.
+                </p>
+            </div>
+
+            <div class="feature-card fade-in">
+                <span class="feature-icon">🔄</span>
+                <h3 class="feature-title">Регулярные обновления</h3>
+                <p class="feature-description">
+                    Частые обновления с новыми функциями, исправлениями ошибок и улучшениями безопасности. Всегда актуальная версия.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about">
+        <div class="about-content">
+            <h2 class="section-title fade-in">О проекте</h2>
+            <div class="about-text fade-in">
+                <p>
+                    <span class="highlight">YaMax</span> — это продвинутая модификация популярного мессенджера MAX, 
+                    созданная с целью предоставить пользователям максимально возможный уровень безопасности, 
+                    производительности и функциональности.
+                </p>
+                <br>
+                <p>
+                    Наш мод включает в себя множество эксклюзивных функций, улучшений интерфейса и оптимизаций, 
+                    которые делают общение более комфортным и защищённым. Мы постоянно работаем над улучшением 
+                    продукта и прислушиваемся к пожеланиям сообщества.
+                </p>
+                <br>
+                <p>
+                    Присоединяйтесь к нашему сообществу, чтобы быть в курсе всех обновлений, получать поддержку 
+                    и делиться своими идеями по развитию проекта!
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Channels Section -->
+    <section class="channels">
+        <div class="channels-content">
+            <h2 class="section-title fade-in">Наши каналы</h2>
+            <p class="section-subtitle fade-in">Подпишитесь для получения обновлений и поддержки</p>
+            
+            <div class="channel-links">
+                <a href="https://t.me/YaMax_Max_Mod" class="channel-link fade-in" target="_blank">
+                    <span class="channel-icon">🇷🇺</span>
+                    <span>YaMax | Русский канал</span>
+                    <span>@YaMax_Max_Mod</span>
+                </a>
+                <a href="https://t.me/YaMax_Max_Mod_Eng" class="channel-link fade-in" target="_blank">
+                    <span class="channel-icon">🇬🇧</span>
+                    <span>YaMax | English Channel</span>
+                    <span>@YaMax_Max_Mod_Eng</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p class="footer-text">© 2024 YaMax | Мод на макс. Все права защищены.</p>
+        <p class="footer-text">Модифицированная версия мессенджера с улучшениями безопасности</p>
+        
+        <div class="social-links">
+            <a href="https://t.me/YaMax_Max_Mod" class="social-link" target="_blank" title="Русский канал">
+                📱
+            </a>
+            <a href="https://t.me/YaMax_Max_Mod_Eng" class="social-link" target="_blank" title="English Channel">
+                🌍
+            </a>
+        </div>
+    </footer>
+
+    <script>
+        // Create floating particles
+        const bgAnimation = document.getElementById('bgAnimation');
+        for (let i = 0; i < 20; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'floating-particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 15 + 's';
+            particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+            bgAnimation.appendChild(particle);
+        }
+
+        // Scroll animation observer
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-in').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add hover effect to feature cards
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+            });
+        });
+    </script>
+</body>
+</html>
