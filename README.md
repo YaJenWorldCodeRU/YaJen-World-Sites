@@ -25,6 +25,20 @@ An AI chatbot interface powered by TensorFlow.js with multiple model support.
   - Modern dark theme UI
   - Mobile-responsive design
 
+### 🚀 YaMax | Мод на макс
+A stunning landing page for the YaMax mod with animations and modern design.
+- **File:** `YaMax_landing.html`
+- **Features:**
+  - Modern dark design with gradients
+  - Smooth animations (background, particles, glow effects)
+  - Fully responsive mobile design
+  - Russian language content
+  - Links to Telegram channels (Russian & English)
+  - Quick access buttons to Yandex and Max Help
+- **Links:**
+  - Telegram (RU): [t.me/YaMax_Max_Mod](https://t.me/YaMax_Max_Mod)
+  - Telegram (EN): [t.me/YaMax_Max_Mod_Eng](https://t.me/YaMax_Max_Mod_Eng)
+
 ## Usage
 
 Simply open any `.html` file in a modern web browser to use the applications. No server setup required as these are standalone client-side applications.
